@@ -13,7 +13,7 @@ input wb_stb_i,
 input wb_we_i,
 output wb_inta_o
 );
-wire scl_pad_i ;
+  wire scl_pad_i ;
 wire scl_pad_o ;
 wire scl_padoen_o ;
 wire sda_pad_i ;
