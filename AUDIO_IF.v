@@ -1,3 +1,98 @@
+//
+=====================================================================
+=======
+// Copyright (c) 2012 by Terasic Technologies Inc.
+//
+=====================================================================
+=======
+//
+// Permission:
+//
+// Terasic grants permission to use and modify this code for use
+// in synthesis for all Terasic Development Boards and Altera Development
+// Kits made by Terasic. Other use of this code, including the selling
+// ,duplication, or modification of any portion is strictly prohibited.
+//
+// Disclaimer:
+//
+// This VHDL/Verilog or C/C++ source code is intended as a design reference
+// which illustrates how these types of functions can be implemented.
+// It is the user's responsibility to verify their design for
+// consistency and functionality through the use of formal
+// verification methods. Terasic provides no warranty regarding the use
+// or functionality of this code.
+//
+//
+=====================================================================
+=======
+//
+// Terasic Technologies Inc
+// 9F., No.176, Sec.2, Gongdao 5th Rd, East Dist, Hsinchu City, 30070. Taiwan
+//
+//
+//
+// web: http://www.terasic.com/
+// email: support@terasic.com
+//
+//
+=====================================================================
+=======
+/*
+Function:
+WOLFSON WM8731 controller
+I2C Configuration Requirements:
+Master Mode
+I2S, 16-bits
+Clock:
+18.432MHz to XTI/MCLK pin of WM8731
+Revision:
+1.0, 10/22/2007, Init by Richard
+Compatibility:
+Quartus 7.2
+*/
+//`include "./AUDIO_ADC.v"
+//`include "./AUDIO_DAC.v"
+//`include "./audio_fifo.v"
+module AUDIO_IF(
+avs_s1_clk,
+avs_s1_reset,
+avs_s1_address,
+avs_s1_read,
+avs_s1_readdata,
+avs_s1_write,
+avs_s1_writedata,
+//
+avs_s1_export_BCLK,
+avs_s1_export_DACLRC,
+avs_s1_export_DACDAT,
+avs_s1_export_ADCLRC,
+avs_s1_export_ADCDAT,
+avs_s1_export_XCK
+);
+avs_s1_clk,
+avs_s1_reset,
+avs_s1_address,
+avs_s1_read,
+avs_s1_readdata,
+avs_s1_write,
+avs_s1_writedata,
+//
+avs_s1_export_BCLK,
+avs_s1_export_DACLRC,
+avs_s1_export_DACDAT,
+avs_s1_export_ADCLRC,
+avs_s1_export_ADCDAT,
+avs_s1_export_XCK
+);
+/*****************************************************************************
+* Constant Declarations *
+*****************************************************************************/
+`define DAC_LFIFO_ADDR 0
+`define DAC_RFIFO_ADDR 1
+`define ADC_LFIFO_ADDR 2
+`define ADC_RFIFO_ADDR 3
+`define CMD_ADDR 4
+`define STATUS_ADDR 5
 `define ADC_RFIFO_ADDR 3
 `define CMD_ADDR 4
 `define STATUS_ADDR 5
@@ -11,7 +106,6 @@ input avs_s1_read;
 output [15:0] avs_s1_readdata;
 input avs_s1_write;
 input [15:0] avs_s1_writedata;
-//
 input avs_s1_export_BCLK;
 input avs_s1_export_DACLRC;
 output avs_s1_export_DACDAT;
@@ -34,7 +128,21 @@ reg adcfifo_read;
 wire [31:0] adcfifo_readdata;
 reg [31:0] data32_from_adcfifo;
 reg [31:0] data32_from_adcfifo_2;
-/*****************************************************************************
+
+  /*****************************************************************************
+* Sequential logic *
+*****************************************************************************/
+////////// fifo clear
+always @ (posedge avs_s1_clk)
+begin
+if (avs_s1_reset)
+fifo_clear <= 1'b0;
+else if (avs_s1_write && (avs_s1_address == `CMD_ADDR))
+fifo_clear <= avs_s1_writedata[0];
+else if (fifo_clear)
+fifo_clear <= 1'b0;
+end
+  /*****************************************************************************
 * Sequential logic *
 *****************************************************************************/
 ////////// fifo clear
@@ -67,7 +175,7 @@ end
 else
 dacfifo_write <= 1'b0;
 end
-////////// response data to avalon-mm
+  ////////// response data to avalon-mm
 always @ (negedge avs_s1_clk)
 begin
 if (avs_s1_reset || fifo_clear)
@@ -82,7 +190,7 @@ reg_readdata <= data32_from_adcfifo[15:0];
 data32_from_adcfifo <= data32_from_adcfifo_2;
 end
 end
-////////// read audio data from adc fifo
+  ///////// read audio data from adc fifo
 always @ (negedge avs_s1_clk)
 begin
 if (avs_s1_reset)
@@ -100,12 +208,12 @@ data32_from_adcfifo_2 = adcfifo_readdata;
 adcfifo_read <= 1'b0;
 end
 end
-/*****************************************************************************
+  *****************************************************************************
 * Combinational logic *
 *****************************************************************************/
 assign avs_s1_readdata = reg_readdata;
 assign avs_s1_export_XCK = avs_s1_clk;
-/*****************************************************************************
+  *****************************************************************************
 * Internal Modules *
 *****************************************************************************/
 AUDIO_DAC DAC_Instance(
